@@ -11,6 +11,7 @@ pygame.display.set_caption("Platformer")
 WIDTH, HEIGHT = 1000, 800
 FPS = 60
 PLAYER_VEL = 5
+RUN = True
 
 WINDOW = pygame.display.set_mode((WIDTH, HEIGHT))
 
@@ -368,7 +369,12 @@ def handle_move(player, objects):
             obj.jump_player()
             player.jump_trampoline()
             break
+        elif obj and obj.name == "rock_head":
+            Lose()
+            break
 
+def Lose():
+    RUN = False
 
 def main(window):
     clock = pygame.time.Clock()
@@ -413,10 +419,11 @@ def main(window):
                     # Create a Trampoline object
                     trampoline_obj = Trampoline(x + 16, y + 40, 28, 28)
                     objects.append(trampoline_obj)
+                elif tile_char == 'R':
+                    rock_head_obj = Rock_Head(x, y, 42, 42)
+                    objects.append(rock_head_obj)
 
-
-    run = True
-    while run:
+    while RUN:
         clock.tick(FPS)
 
         for event in pygame.event.get():
