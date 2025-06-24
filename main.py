@@ -12,12 +12,8 @@ pygame.display.set_caption("Platformer")
 WIDTH, HEIGHT = 1000, 800
 FPS = 60
 PLAYER_VEL = 5
-RUN = True
 
 WINDOW = pygame.display.set_mode((WIDTH, HEIGHT))
-
-def Lose():
-    RUN = False
 
 def read_level_data(level_file_name):
     path = join("assets", "Levels", level_file_name)
@@ -75,7 +71,7 @@ def get_block(x, y, size):
 class Player(pygame.sprite.Sprite):
     COLOR = (255, 0, 0)
     GRAVITY = 1
-    SPRITES = load_sprite_sheets("MainCharacters", "MaskDude", 32, 32, True)
+    SPRITES = load_sprite_sheets("MainCharacters", "NinjaFrog", 32, 32, True)
     ANIMATION_DELAY = 3
 
     def __init__(self, x, y, width, height):
@@ -90,6 +86,7 @@ class Player(pygame.sprite.Sprite):
         self.jump_count = 0
         self.hit = False
         self.hit_count = 0
+        self.health = 5
 
     def jump(self):
         self.y_vel = -self.GRAVITY * 8
@@ -107,6 +104,8 @@ class Player(pygame.sprite.Sprite):
         self.rect.y += dy
 
     def make_hit(self):
+        if self.hit == True:
+            self.health -= 1
         self.hit = True
 
     def move_left(self, vel):
@@ -508,10 +507,11 @@ def main(window):
                     player.jump()
 
         player.loop(FPS)
+        handle_move(player, objects)
         for obj in objects:
             if hasattr(obj, 'loop'):
                 obj.loop(FPS, objects, player)
-        handle_move(player, objects)
+
         draw(window, background, bg_image, player, objects, offset_x, offset_y)
 
         if ((player.rect.right - offset_x >= WIDTH - scroll_area_width) and player.x_vel > 0) or (
@@ -520,9 +520,13 @@ def main(window):
         if ((player.rect.bottom - offset_y >= HEIGHT - scroll_area_height) and player.y_vel > 0) or (
                 (player.rect.top - offset_y <= scroll_area_height) and player.y_vel < 0):
             offset_y += player.y_vel
-
         
         offset_x = max(0, offset_x)
+
+        #Player Health
+        if player.health <= 0:
+            sys.exit()
+            exit()
 
     pygame.quit()
     quit()
