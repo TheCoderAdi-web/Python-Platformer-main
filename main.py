@@ -315,7 +315,6 @@ class Rock_Head(Object):
         return False
 
     def loop(self, fps, game_objects, player):
-        print(self.state)
         # Update animation regardless of state
         sprites = self.rock_head[self.animation_name]
         sprite_index = (self.animation_count //
