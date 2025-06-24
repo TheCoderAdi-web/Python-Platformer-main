@@ -2,6 +2,7 @@ import os
 import random
 import math
 import pygame
+import sys
 from os import listdir
 from os.path import isfile, join
 pygame.init()
@@ -14,6 +15,9 @@ PLAYER_VEL = 5
 RUN = True
 
 WINDOW = pygame.display.set_mode((WIDTH, HEIGHT))
+
+def Lose():
+    RUN = False
 
 def read_level_data(level_file_name):
     path = join("assets", "Levels", level_file_name)
@@ -210,7 +214,7 @@ class Fire(Object):
     def off(self):
         self.animation_name = "off"
 
-    def loop(self, fps):
+    def loop(self, fps, objects, player):
         sprites = self.fire[self.animation_name]
         sprite_index = (self.animation_count //
                         self.ANIMATION_DELAY) % len(sprites)
@@ -246,7 +250,7 @@ class Trampoline(Object):
             self.animation_count = 0
 
 
-    def loop(self, fps):
+    def loop(self, fps, player, objects):
         sprites = self.trampoline[self.animation_name]
         sprite_index = (self.animation_count //
                         self.ANIMATION_DELAY) % len(sprites)
@@ -266,27 +270,102 @@ class Trampoline(Object):
                 self.jump_count = 0
 
 class Rock_Head(Object):
-    ANIMATION_DELAY = 5
-    def __init__(self, x, y, width, height):
+    """
+    A crushing rock head trap that falls when the player is detected below it.
+    """
+    IDLE = 0
+    FALLING = 1
+    SMASHED = 2
+    RESETTING = 3
+
+    ANIMATION_DELAY = 10
+
+    def __init__(self, x, y, width, height, fall_speed=1, reset_time=FPS * 0.5):
+        # Use the calculated scaled size for the Rock_Head's actual width/height
         super().__init__(x, y, width, height, "rock_head")
+        
+        self.original_y = y
+        
+        # Load sprite sheets using the raw dimensions as expected by load_sprite_sheets
         self.rock_head = load_sprite_sheets("Traps", "Rock Head", width, height)
+        
         self.image = self.rock_head["Idle"][0]
         self.mask = pygame.mask.from_surface(self.image)
-        self.animation_count = 0
-        self.animation_name = "Idle"
 
-    def loop(self, fps):
+        self.state = self.IDLE
+        self.fall_speed = fall_speed
+        self.y_vel = 0
+        self.reset_timer = 0
+        self.reset_time = reset_time # Time in frames before reset
+        self.trigger_rect = pygame.Rect(self.rect.x, self.rect.bottom,
+                                        self.rect.width, self.rect.height * 5)
+        self.animation_name = "Idle"
+        self.animation_count = 0
+
+
+    def _check_collision_with_static_objects(self, objects):
+        for obj in objects:
+            if obj != self and not isinstance(obj, Fire) and not isinstance(obj, Rock_Head):
+                if pygame.sprite.collide_mask(self, obj):
+                    if self.y_vel > 0:
+                        self.rect.bottom = obj.rect.top
+                        self.y_vel = 0
+                        return True
+    
+        return False
+
+    def loop(self, fps, game_objects, player):
+        print(self.state)
+        # Update animation regardless of state
         sprites = self.rock_head[self.animation_name]
         sprite_index = (self.animation_count //
                         self.ANIMATION_DELAY) % len(sprites)
         self.image = sprites[sprite_index]
         self.animation_count += 1
+        if self.animation_count // self.ANIMATION_DELAY >= len(sprites):
+            self.animation_count = 0 # Reset animation count
 
+        if self.state == self.IDLE:
+            self.trigger_rect.topleft = (self.rect.x, self.rect.bottom)
+
+            # Check if player is within the trigger area and is under the rock head
+            if player.rect.colliderect(self.trigger_rect):
+                self.state = self.FALLING # Set initial downward velocity
+
+        elif self.state == self.FALLING:
+            self.rect.y += self.y_vel # Apply vertical velocity
+            self.y_vel += self.fall_speed # Apply gravity (increase y_vel for faster fall)
+
+            # Check for collision with player while falling
+            if pygame.sprite.collide_mask(self, player) and self.y_vel > 0:
+                player.make_hit() # Player gets hit if Rock Head falls on them
+                # print("Player hit by Rock Head!")
+
+            # Check for collision with ground/other blocks
+            if self._check_collision_with_static_objects(game_objects):
+                self.state = self.SMASHED
+                self.y_vel = 0
+                self.animation_name = "Bottom Hit"
+
+        elif self.state == self.SMASHED:
+            self.reset_timer += 1
+            if self.reset_timer >= self.reset_time:
+                self.state = self.RESETTING
+
+        elif self.state == self.RESETTING:
+            self.y_vel = 0
+            self.reset_timer = 0
+            self.animation_name = "Idle" # Reset animation
+            if self.rect.y > self.original_y:
+                self.rect.y -= 3 # Reset position
+            else:
+                self.state = self.IDLE #Reset state afterwards
+
+        self.update()
+
+    def update(self):
         self.rect = self.image.get_rect(topleft=(self.rect.x, self.rect.y))
         self.mask = pygame.mask.from_surface(self.image)
-
-        if self.animation_count // self.ANIMATION_DELAY > len(sprites):
-            self.animation_count = 0
 
 def get_background(name):
     image = pygame.image.load(join("assets", "Background", name))
@@ -373,9 +452,6 @@ def handle_move(player, objects):
             Lose()
             break
 
-def Lose():
-    RUN = False
-
 def main(window):
     clock = pygame.time.Clock()
     background, bg_image = get_background("Blue.png")
@@ -420,17 +496,17 @@ def main(window):
                     trampoline_obj = Trampoline(x + 16, y + 40, 28, 28)
                     objects.append(trampoline_obj)
                 elif tile_char == 'R':
-                    rock_head_obj = Rock_Head(x, y, 42, 42)
+                    rock_head_obj = Rock_Head(x, y + 40, 42, 42)
                     objects.append(rock_head_obj)
 
-    while RUN:
+    while True:
         clock.tick(FPS)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                run = False
+                sys.exit()
+                exit()
                 break
-
             if event.type == pygame.KEYDOWN:
                 if (event.key == pygame.K_SPACE or event.type == pygame.K_UP or event.type == pygame.K_w) and player.jump_count < 2:
                     player.jump()
@@ -438,7 +514,7 @@ def main(window):
         player.loop(FPS)
         for obj in objects:
             if hasattr(obj, 'loop'):
-                obj.loop(FPS)
+                obj.loop(FPS, objects, player)
         handle_move(player, objects)
         draw(window, background, bg_image, player, objects, offset_x, offset_y)
 
