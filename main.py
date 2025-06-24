@@ -228,10 +228,12 @@ class Fire(Object):
             self.animation_count = 0
 
 class Spike(Object):
-    def __init__(self, x, y, width, height):
+    def __init__(self, x, y, width, height, type):
         super().__init__(x, y, width, height, "spike")
         self.spike = pygame.image.load(join("assets", "Traps", "Spikes", "Idle.png")).convert_alpha()
         self.image = pygame.transform.scale(self.spike, (width, height))
+        if type == "Down":
+            self.image = pygame.transform.rotate(self.image, 180)
 
 class Trampoline(Object):
     ANIMATION_DELAY = 6
@@ -315,32 +317,27 @@ class Rock_Head(Object):
         return False
 
     def loop(self, fps, game_objects, player):
-        # Update animation regardless of state
         sprites = self.rock_head[self.animation_name]
         sprite_index = (self.animation_count //
                         self.ANIMATION_DELAY) % len(sprites)
         self.image = sprites[sprite_index]
         self.animation_count += 1
         if self.animation_count // self.ANIMATION_DELAY >= len(sprites):
-            self.animation_count = 0 # Reset animation count
+            self.animation_count = 0
 
         if self.state == self.IDLE:
             self.trigger_rect.topleft = (self.rect.x, self.rect.bottom)
 
-            # Check if player is within the trigger area and is under the rock head
             if player.rect.colliderect(self.trigger_rect):
-                self.state = self.FALLING # Set initial downward velocity
+                self.state = self.FALLING
 
         elif self.state == self.FALLING:
-            self.rect.y += self.y_vel # Apply vertical velocity
-            self.y_vel += self.fall_speed # Apply gravity (increase y_vel for faster fall)
+            self.rect.y += self.y_vel
+            self.y_vel += self.fall_speed
 
-            # Check for collision with player while falling
             if pygame.sprite.collide_mask(self, player) and self.y_vel > 0:
-                player.make_hit() # Player gets hit if Rock Head falls on them
-                # print("Player hit by Rock Head!")
+                player.make_hit()
 
-            # Check for collision with ground/other blocks
             if self._check_collision_with_static_objects(game_objects):
                 self.state = self.SMASHED
                 self.y_vel = 0
@@ -354,11 +351,11 @@ class Rock_Head(Object):
         elif self.state == self.RESETTING:
             self.y_vel = 0
             self.reset_timer = 0
-            self.animation_name = "Idle" # Reset animation
+            self.animation_name = "Idle" 
             if self.rect.y > self.original_y:
-                self.rect.y -= 3 # Reset position
+                self.rect.y -= 3
             else:
-                self.state = self.IDLE #Reset state afterwards
+                self.state = self.IDLE
 
         self.update()
 
@@ -447,9 +444,6 @@ def handle_move(player, objects):
             obj.jump_player()
             player.jump_trampoline()
             break
-        elif obj and obj.name == "rock_head":
-            Lose()
-            break
 
 def main(window):
     clock = pygame.time.Clock()
@@ -488,7 +482,10 @@ def main(window):
                     objects.append(Block(x, y, BLOCK_SIZE, "D"))
                 elif tile_char == 'S':
                     # Create a Spike object
-                    spike_obj = Spike(x + 24, y + 32, 64, 64)
+                    spike_obj = Spike(x + 24, y + 32, 64, 64, "Up")
+                    objects.append(spike_obj)
+                elif tile_char == 's':
+                    spike_obj = Spike(x, y, 64, 64, "Down")
                     objects.append(spike_obj)
                 elif tile_char == 'T':
                     # Create a Trampoline object
