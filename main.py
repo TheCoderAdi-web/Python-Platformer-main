@@ -86,7 +86,9 @@ class Player(pygame.sprite.Sprite):
         self.jump_count = 0
         self.hit = False
         self.hit_count = 0
+        self.hit_times = 0
         self.health = 5
+        self.heart_image = pygame.image.load(join("assets", "In-Game-UI", "heartImage.png"))
 
     def jump(self):
         self.y_vel = -self.GRAVITY * 8
@@ -104,9 +106,10 @@ class Player(pygame.sprite.Sprite):
         self.rect.y += dy
 
     def make_hit(self):
-        if self.hit == True:
-            self.health -= 1
         self.hit = True
+        if self.hit == True and self.hit_times == 0:
+            self.health -= 1
+            self.hit_times += 1
 
     def move_left(self, vel):
         self.x_vel = -vel
@@ -129,6 +132,7 @@ class Player(pygame.sprite.Sprite):
         if self.hit_count > fps * 2:
             self.hit = False
             self.hit_count = 0
+            self.hit_times = 0
 
         self.fall_count += 1
         self.update_sprite()
@@ -170,6 +174,8 @@ class Player(pygame.sprite.Sprite):
 
     def draw(self, win, offset_x, offset_y):
         win.blit(self.sprite, (self.rect.x - offset_x, self.rect.y - offset_y))
+        for h in range(self.health):
+            win.blit(self.heart_image, (h * self.heart_image.get_width(), 20))
 
 
 class Object(pygame.sprite.Sprite):
