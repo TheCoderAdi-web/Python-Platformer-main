@@ -1,6 +1,3 @@
-import os
-import random
-import math
 import pygame
 import sys
 from os import listdir
@@ -14,6 +11,7 @@ FPS = 60
 PLAYER_VEL = 5
 
 WINDOW = pygame.display.set_mode((WIDTH, HEIGHT))
+                
 
 def read_level_data(level_file_name):
     path = join("assets", "Levels", level_file_name)
@@ -390,8 +388,8 @@ def draw(window, background, bg_image, player, objects, offset_x, offset_y):
 
     player.draw(window, offset_x, offset_y)
 
+            
     pygame.display.update()
-
 
 def handle_vertical_collision(player, objects, dy):
     collided_objects = []
@@ -452,11 +450,11 @@ def handle_move(player, objects):
 
 def main(window):
     clock = pygame.time.Clock()
-    background, bg_image = get_background("Blue.png")
+    background, bg_image = get_background("Green.png")
 
     BLOCK_SIZE = 96
     
-    player = None  # Default player position
+    player = None
     objects = []
 
     scroll_area_width = 200
@@ -512,31 +510,27 @@ def main(window):
                 if (event.key == pygame.K_SPACE or event.type == pygame.K_UP or event.type == pygame.K_w) and player.jump_count < 2:
                     player.jump()
 
-        player.loop(FPS)
-        handle_move(player, objects)
-        for obj in objects:
-            if hasattr(obj, 'loop'):
-                obj.loop(FPS, objects, player)
+            player.loop(FPS)
+            handle_move(player, objects)
+            for obj in objects:
+                if hasattr(obj, 'loop'):
+                    obj.loop(FPS, objects, player)
 
-        draw(window, background, bg_image, player, objects, offset_x, offset_y)
+            draw(window, background, bg_image, player, objects, offset_x, offset_y)
 
-        if ((player.rect.right - offset_x >= WIDTH - scroll_area_width) and player.x_vel > 0) or (
-                (player.rect.left - offset_x <= scroll_area_width) and player.x_vel < 0):
-            offset_x += player.x_vel
-        if ((player.rect.bottom - offset_y >= HEIGHT - scroll_area_height) and player.y_vel > 0) or (
-                (player.rect.top - offset_y <= scroll_area_height) and player.y_vel < 0):
-            offset_y += player.y_vel
-        
-        offset_x = max(0, offset_x)
+            if ((player.rect.right - offset_x >= WIDTH - scroll_area_width) and player.x_vel > 0) or (
+                    (player.rect.left - offset_x <= scroll_area_width) and player.x_vel < 0):
+                offset_x += player.x_vel
+            if ((player.rect.bottom - offset_y >= HEIGHT - scroll_area_height) and player.y_vel > 0) or (
+                    (player.rect.top - offset_y <= scroll_area_height) and player.y_vel < 0):
+                offset_y += player.y_vel
+            
+            offset_x = max(0, offset_x)
 
-        #Player Health
-        if player.health <= 0:
-            sys.exit()
-            exit()
-
-    pygame.quit()
-    quit()
-
+            #Player Health
+            if player.health <= 0:
+                sys.exit()
+                exit()
 
 if __name__ == "__main__":
     main(WINDOW)
