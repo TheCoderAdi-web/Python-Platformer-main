@@ -466,6 +466,10 @@ def main(window):
     
     player = None
     objects = []
+    global player_spawn_x
+    player_spawn_x = None
+    global player_spawn_y
+    player_spawn_y = None
 
     scroll_area_width = 200
     scroll_area_height = 200
@@ -488,6 +492,8 @@ def main(window):
                 elif tile_char == 'P':
                     # Create the Player object at this position
                     player = Player(x, y, 50, 50)
+                    player_spawn_x = x
+                    player_spawn_y = y
                     offset_x = player.rect.x - WIDTH // 2
                     offset_y = player.rect.y - HEIGHT // 2
                 elif tile_char == 'D':
@@ -531,8 +537,13 @@ def main(window):
 
         #Player Health
         if player.health <= 0:
-            sys.exit()
-            exit()
+            player.rect.centerx = player_spawn_x
+            player.rect.centery = player_spawn_y
+            player.health = 5
+            offset_x = player.rect.x - WIDTH // 2
+            offset_y = player.rect.y - HEIGHT // 2
+            player.hit = False
+            player.hit_count = 0
 
 if __name__ == "__main__":
     main(WINDOW)
